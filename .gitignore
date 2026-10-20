@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.env
+.env.local
+uploads/*
+!uploads/.gitkeep
+*.tsbuildinfo
+next-env.d.ts
+test-results
+playwright-report
+
+# Local tooling output
+.playwright-mcp/
+.claude/settings.local.json

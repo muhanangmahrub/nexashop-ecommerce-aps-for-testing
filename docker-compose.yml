@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nexashop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexashop}
+      POSTGRES_DB: ${POSTGRES_DB:-nexashop}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nexashop} -d ${POSTGRES_DB:-nexashop}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.20.5
+    restart: unless-stopped
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_TEST_MODE: ${NEXT_PUBLIC_TEST_MODE:-true}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexashop}:${POSTGRES_PASSWORD:-nexashop}@db:5432/${POSTGRES_DB:-nexashop}?schema=public
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      UPLOAD_DIR: /app/uploads
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+volumes:
+  pgdata:
+  uploads:
